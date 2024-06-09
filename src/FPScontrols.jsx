@@ -1,5 +1,5 @@
 import { CapsuleCollider, RigidBody } from "@react-three/rapier"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { useKeyboardControls } from "@react-three/drei"
 import * as THREE from "three"
 import { useThree, useFrame } from "@react-three/fiber"
@@ -10,14 +10,21 @@ export default function FPScontrols() {
     const forwardDirectionVector = new THREE.Vector3()
     const sidewaysDirectionVector = new THREE.Vector3()
 
+    const [isInAir, setIsInAir ] = useState(true)
+    const [isGrounded, setIsGrounded ] = useState(true)
+
     const [subscribeKeys, getKeys] = useKeyboardControls()
     const rigidBodyRef = useRef()
     const { camera } = useThree()
 
     useFrame((state, delta) => {
         //get input key values on every frame
-        const { forward, backward, leftward, rightward, jump } =
-            getKeys()
+        const { forward, backward, leftward, rightward, jump } = getKeys()
+
+        if (forward ||backward || rightward || leftward) 
+        {
+            rigidBodyRef.current.wakeUp()
+        }
 
         //check if ref has been linked to rigid body
         if (rigidBodyRef.current) {
@@ -73,6 +80,7 @@ export default function FPScontrols() {
             })
         }
     })
+
     return (
         <>
             <RigidBody
@@ -84,9 +92,6 @@ export default function FPScontrols() {
                 position={[0, 0.6, 0]}
                 enabledRotations={[false, false, false]} //prevent from falling sideways
             >
-                {/**for the capsule, args={[halfCapsuleHeight-radius, radius]} 
-      think of (halfCapsuleHeight-radius) as the height of the straight vertical section only (cut in half)
-      */}
                 <CapsuleCollider args={[0.3, 0.25]} />
             </RigidBody>
         </>
