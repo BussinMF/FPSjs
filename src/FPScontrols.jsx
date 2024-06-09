@@ -30,9 +30,12 @@ export default function FPScontrols() {
         if (rigidBodyRef.current) {
             //get current position of rigid body (on every frame)
             const pos = rigidBodyRef.current.translation()
-
-            //copy rigid body position to camera (on every frame)
             camera.position.copy(pos)
+
+             //get current rotation of camera and set the rotation on rigidbody (on every frame)
+            const cameraRotation = new THREE.Quaternion()
+            cameraRotation.setFromEuler(camera.rotation)
+            rigidBodyRef.current.setRotation(cameraRotation)
 
             //'front direction' takes true/false values from keyboard input
             //  and treats them as 1/0. When summed together you get a number
