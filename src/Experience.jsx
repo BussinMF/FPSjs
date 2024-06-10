@@ -16,8 +16,8 @@ export default function Experience()
         <Lights />
 
         <Physics debug>
-            <World />
             <FPScontrols />
+            <World />
         </Physics>
 
     </>
