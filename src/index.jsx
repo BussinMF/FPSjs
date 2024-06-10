@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber'
 import { KeyboardControls, Preload } from '@react-three/drei'
 import Experience from './Experience.jsx'
 import Interface from './Interface.jsx'
+import { Perf } from 'r3f-perf'
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
@@ -12,8 +13,7 @@ const keys = [
     { name: 'backward', keys: [ 'ArrowDown', 'KeyS' ] },
     { name: 'leftward', keys: [ 'ArrowLeft', 'KeyA' ] },
     { name: 'rightward', keys: [ 'ArrowRight', 'KeyD' ] },
-    { name: 'jump', keys: [ 'Space' ] },
-    {name: 'resetRotation', keys: [ 'KeyR' ]}
+    { name: 'jump', keys: [ 'Space' ] }
 ]
 
 root.render(
@@ -21,11 +21,11 @@ root.render(
     map={ keys }
     >
         <Canvas
-        camera={{ position: [0, 1, 5] }} 
         flat 
         shadows 
         dpr={[1, 2]}
         >
+            <Perf position="top-left" minimal/>
             <Experience />
             <Preload all />
         </Canvas>

@@ -4,9 +4,7 @@ export default function Interface() {
       <div className="interface">
         <div className="controls">
           <p>WASD / ZQSD / arrow keys - Move around </p>
-          <p>Space - Jump</p>
-          <p>R - Reset rotation</p>
-          <p>K - KickFlip ( (space + k) WIP )</p>
+          <p>Space - Jump ( Hold to BunnyHop )</p>
         </div>
       </div>
     </>

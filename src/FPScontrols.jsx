@@ -9,7 +9,8 @@ const velocity = new THREE.Vector3()
 const forwardDirectionVector = new THREE.Vector3()
 const sidewaysDirectionVector = new THREE.Vector3()
 
-export default function FPSControls() {
+export default function FPSControls() 
+{
     const { camera } = useThree()
     const { rapier, world } = useRapier()
     const rigidBodyRef = useRef()
@@ -19,7 +20,8 @@ export default function FPSControls() {
     useFrame((state, delta) => {
         const { forward, backward, leftward, rightward, jump } = getKeys()
         
-        if (forward || backward || leftward || rightward || jump) {
+        if (forward || backward || leftward || rightward || jump) 
+        {
             rigidBodyRef.current.wakeUp()
         }
 
@@ -90,6 +92,7 @@ export default function FPSControls() {
             restitution={0}
             position={[0, 0.6, 0]}
             enabledRotations={[false, false, false]}
+            canSleep
         >
             <CapsuleCollider args={[0.3, 0.25]} />
         </RigidBody>
