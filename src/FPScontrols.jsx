@@ -5,9 +5,12 @@ import * as THREE from "three"
 import { useFrame, useThree } from "@react-three/fiber"
 
 const SPEED = 5
+const JUMPHEIGHT = 5
 const velocity = new THREE.Vector3()
 const forwardDirectionVector = new THREE.Vector3()
 const sidewaysDirectionVector = new THREE.Vector3()
+const standingEye = new THREE.Vector3(0, 0.5, 0)
+const crouchingEye = new THREE.Vector3(0, 0.2, 0)
 
 export default function FPSControls() 
 {
@@ -15,12 +18,13 @@ export default function FPSControls()
     const { rapier, world } = useRapier()
     const rigidBodyRef = useRef()
     const [isGrounded, setIsGrounded] = useState(true)
+    const [isStanding, setIsStanding] = useState(true)
     const [subscribeKeys, getKeys] = useKeyboardControls()
 
     useFrame((state, delta) => {
-        const { forward, backward, leftward, rightward, jump } = getKeys()
+        const { forward, backward, leftward, rightward, jump, crouch } = getKeys()
         
-        if (forward || backward || leftward || rightward || jump) 
+        if (forward || backward || leftward || rightward || jump || crouch) 
         {
             rigidBodyRef.current.wakeUp()
         }
@@ -32,7 +36,7 @@ export default function FPSControls()
             let previousCameraYaw = 0
             let accumulatedYaw = 0
             const pos = rigidBodyRef.current.translation()
-            camera.position.copy(pos)
+            camera.position.copy(pos).add(standingEye)
             const cameraEuler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ')
             const currentCameraYaw = cameraEuler.y
             let deltaYaw = currentCameraYaw - previousCameraYaw
@@ -73,12 +77,25 @@ export default function FPSControls()
 
             if(jump && isGrounded && hit.toi < 0.15)
             {
-                rigidBodyRef.current.setLinvel({ x: 0, y: 3, z: 0 })
+                rigidBodyRef.current.setLinvel({ x: 0, y: JUMPHEIGHT, z: 0 })
                 setIsGrounded(false)
             }
             else if(hit.toi === 0)
             {
                 setIsGrounded(true)
+            }
+            /* Wall Friction */
+            if(!isGrounded && hit.toi > 0.15)
+            {
+                rigidBodyRef.current.friction = 1
+            }
+
+            /**
+             * Crouch
+             */
+            if(crouch && isStanding)
+            {
+                camera.position.copy(pos).add(crouchingEye)
             }
         }
     })
@@ -88,7 +105,6 @@ export default function FPSControls()
             ref={rigidBodyRef}
             colliders={false}
             mass={1}
-            friction={0}
             restitution={0}
             position={[0, 0.6, 0]}
             enabledRotations={[false, false, false]}

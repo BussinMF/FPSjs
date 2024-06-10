@@ -9,8 +9,6 @@ export default function Experience()
     return <>
         <color args={[ 'lightgrey' ]} attach="background" />
 
-        {/* <OrbitControls makeDefault /> */}
-
         <PointerLockControls />
 
         <Lights />
