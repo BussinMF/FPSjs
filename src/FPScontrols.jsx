@@ -75,19 +75,26 @@ export default function FPSControls()
             const ray = new rapier.Ray(origin, direction)
             const hit = world.castRay(ray, 10, true)
 
-            if(jump && isGrounded && hit.toi < 0.15)
+            if(hit)
             {
-                rigidBodyRef.current.setLinvel({ x: 0, y: JUMPHEIGHT, z: 0 })
-                setIsGrounded(false)
-            }
-            else if(hit.toi === 0)
-            {
-                setIsGrounded(true)
-            }
-            /* Wall Friction */
-            if(!isGrounded && hit.toi > 0.15)
-            {
-                rigidBodyRef.current.friction = 1
+                if(jump && isGrounded && hit.toi < 0.15)
+                {
+                    rigidBodyRef.current.setLinvel({ x: 0, y: JUMPHEIGHT, z: 0 })
+                    setIsGrounded(false)
+                }
+                else if(hit.toi === 0)
+                {
+                    setIsGrounded(true)
+                }
+
+                /* Wall Friction */
+                if(!isGrounded && hit.toi > 0.15)
+                {
+                    if(forward || backward || leftward || rightward)
+                    {
+                        rigidBodyRef.current.friction = 1 
+                    }
+                }
             }
 
             /**
