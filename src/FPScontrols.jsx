@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 
-const SPEED = 5;
-const JUMPHEIGHT = 5;
+const SPEED = 10;
+const JUMPHEIGHT = 7;
 const SLIDE_SPEED = 15;
+const DASH_SPEED = 30;
+const DASH_DURATION = 0.2; // Dash duration in seconds
 const standingEye = new THREE.Vector3(0, 0.5, 0);
 const crouchingEye = new THREE.Vector3(0, 0.2, 0);
 
@@ -15,6 +17,7 @@ const forwardDirectionVector = new THREE.Vector3();
 const sidewaysDirectionVector = new THREE.Vector3();
 const direction = new THREE.Vector3(0, -1, 0);
 const slideDirection = new THREE.Vector3();
+const dashDirection = new THREE.Vector3();
 const cameraEuler = new THREE.Euler();
 const accumulatedYawQuaternion = new THREE.Quaternion();
 
@@ -25,14 +28,21 @@ export default function FPSControls() {
   const [isGrounded, setIsGrounded] = useState(true);
   const [isWalled, setIsWalled] = useState(false);
   const [canSlide, setCanSlide] = useState(true);
+  const [canDash, setCanDash] = useState(true); // State to track if dash can be performed
   const [subscribeKeys, getKeys] = useKeyboardControls();
+  const [isDashPressed, setIsDashPressed] = useState(false); // State to track if dash key is pressed
   let previousCameraYaw = 0;
   let accumulatedYaw = 0;
+  let dashTimeout = null;
 
   useEffect(() => {
     const unsubscribe = subscribeKeys((state) => {
       if (!state.slide) {
         setCanSlide(true);
+      }
+
+      if (!state.dash) {
+        setIsDashPressed(false);
       }
     });
     return () => unsubscribe();
@@ -89,6 +99,38 @@ export default function FPSControls() {
     }
   };
 
+  const handleDash = (forward, backward, leftward, rightward, dash) => {
+    if (dash && canDash && !isDashPressed) {
+      setIsDashPressed(true);
+
+      dashDirection.set(
+        forward ? 0 : backward ? 0 : leftward ? -1 : rightward ? 1 : 0,
+        0,
+        forward ? -1 : backward ? 1 : leftward ? 0 : rightward ? 0 : -1
+      );
+      dashDirection.applyQuaternion(camera.quaternion);
+      dashDirection.normalize().multiplyScalar(DASH_SPEED);
+      setCanDash(false);
+
+      // Start a timer for the dash duration
+      dashTimeout = setTimeout(() => {
+        setCanDash(true);
+      }, DASH_DURATION * 1000); // Convert duration to milliseconds
+    }
+
+    if (!dash && isDashPressed) {
+      setIsDashPressed(false);
+    }
+
+    if (!canDash) {
+      rigidBodyRef.current.setLinvel({
+        x: dashDirection.x,
+        y: rigidBodyRef.current.linvel().y,
+        z: dashDirection.z,
+      });
+    }
+  };
+
   const handleCameraRotation = () => {
     const pos = rigidBodyRef.current.translation();
     camera.position.copy(pos).add(canSlide ? standingEye : crouchingEye);
@@ -106,9 +148,9 @@ export default function FPSControls() {
   };
 
   useFrame((state, delta) => {
-    const { forward, backward, leftward, rightward, jump, slide } = getKeys();
+    const { forward, backward, leftward, rightward, jump, slide, dash } = getKeys();
 
-    if (forward || backward || leftward || rightward || jump || slide) {
+    if (forward || backward || leftward || rightward || jump || slide || dash) {
       rigidBodyRef.current.wakeUp();
     }
 
@@ -128,6 +170,7 @@ export default function FPSControls() {
         );
         handleJump(jump, hit);
         handleSlide(forward, backward, leftward, rightward, slide);
+        handleDash(forward, backward, leftward, rightward, dash);
 
         if (isWalled && !isGrounded) {
           rigidBodyRef.current.friction = 1;
@@ -137,6 +180,15 @@ export default function FPSControls() {
       }
     }
   });
+
+  useEffect(() => {
+    return () => {
+      // Clean up the dash timeout when the component unmounts or rerenders
+      if (dashTimeout) {
+        clearTimeout(dashTimeout);
+      }
+    };
+  }, []);
 
   return (
     <RigidBody

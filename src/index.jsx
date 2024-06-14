@@ -14,7 +14,8 @@ const keys = [
     { name: 'leftward', keys: [ 'ArrowLeft', 'KeyA' ] },
     { name: 'rightward', keys: [ 'ArrowRight', 'KeyD' ] },
     { name: 'jump', keys: [ 'Space' ] },
-    { name: 'slide', keys: [ 'Shift' ] }
+    { name: 'slide', keys: [ 'Shift' ] },
+    { name: 'dash', keys: [ 'KeyQ' ] },
 ]
 
 root.render(

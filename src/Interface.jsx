@@ -6,6 +6,7 @@ export default function Interface() {
           <p>WASD / ZQSD / arrow keys - Move around </p>
           <p>Space - Jump ( Hold to BunnyHop )</p>
           <p>Shift - Slide</p>
+          <p>Q or A - Dash</p>
         </div>
       </div>
     </>
