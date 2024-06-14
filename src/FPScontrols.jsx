@@ -7,11 +7,16 @@ import { useFrame, useThree } from "@react-three/fiber"
 const SPEED = 5
 const JUMPHEIGHT = 5
 const SLIDE_SPEED = 15
+const standingEye = new THREE.Vector3(0, 0.5, 0)
+const crouchingEye = new THREE.Vector3(0, 0.2, 0)
+
 const velocity = new THREE.Vector3()
 const forwardDirectionVector = new THREE.Vector3()
 const sidewaysDirectionVector = new THREE.Vector3()
-const standingEye = new THREE.Vector3(0, 0.5, 0)
-const crouchingEye = new THREE.Vector3(0, 0.2, 0)
+const direction = new THREE.Vector3(0, -1, 0)
+const slideDirection = new THREE.Vector3()
+const cameraEuler = new THREE.Euler()
+const accumulatedYawQuaternion = new THREE.Quaternion()
 
 export default function FPSControls() {
     const { camera } = useThree()
@@ -19,11 +24,11 @@ export default function FPSControls() {
     const rigidBodyRef = useRef()
     const [isGrounded, setIsGrounded] = useState(true)
     const [canSlide, setCanSlide] = useState(true)
-    const [slideDirection, setSlideDirection] = useState(new THREE.Vector3())
     const [subscribeKeys, getKeys] = useKeyboardControls()
+    let previousCameraYaw = 0
+    let accumulatedYaw = 0
 
     useEffect(() => {
-        // Listen for slide key release
         const unsubscribe = subscribeKeys((state) => {
             if (!state.slide) {
                 setCanSlide(true)
@@ -31,6 +36,68 @@ export default function FPSControls() {
         })
         return () => unsubscribe()
     }, [subscribeKeys])
+
+    const handleMovement = (forward, backward, leftward, rightward) => {
+        forwardDirectionVector.set(0, 0, -forward + backward)
+        sidewaysDirectionVector.set(rightward - leftward, 0, 0)
+
+        velocity
+            .copy(forwardDirectionVector)
+            .add(sidewaysDirectionVector)
+            .normalize()
+            .multiplyScalar(SPEED)
+            .applyQuaternion(camera.quaternion)
+
+        rigidBodyRef.current.setLinvel({
+            x: velocity.x,
+            y: rigidBodyRef.current.linvel().y,
+            z: velocity.z,
+        })
+    }
+
+    const handleJump = (jump, hit) => {
+        if (jump && isGrounded && hit.toi < 0.15) {
+            rigidBodyRef.current.setLinvel({ x: 0, y: JUMPHEIGHT, z: 0 })
+            setIsGrounded(false)
+        } else if (hit.toi === 0) {
+            setIsGrounded(true)
+        }
+    }
+
+    const handleSlide = (forward, backward, leftward, rightward, slide) => {
+        if (slide && isGrounded && canSlide) {
+            slideDirection.set(
+                forward ? 0 : backward ? 0 : leftward ? -1 : rightward ? 1 : 0,
+                0,
+                forward ? -1 : backward ? 1 : leftward ? 0 : rightward ? 0 : -1
+            )
+            slideDirection.applyQuaternion(camera.quaternion)
+            slideDirection.normalize().multiplyScalar(SLIDE_SPEED)
+            setCanSlide(false)
+        }
+
+        if (!canSlide) {
+            rigidBodyRef.current.setLinvel({
+                x: slideDirection.x,
+                y: rigidBodyRef.current.linvel().y,
+                z: slideDirection.z,
+            })
+        }
+    }
+
+    const handleCameraRotation = () => {
+        const pos = rigidBodyRef.current.translation()
+        camera.position.copy(pos).add(canSlide ? standingEye : crouchingEye)
+        cameraEuler.setFromQuaternion(camera.quaternion, 'YXZ')
+        const currentCameraYaw = cameraEuler.y
+        let deltaYaw = currentCameraYaw - previousCameraYaw
+        if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI
+        if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI
+        accumulatedYaw += deltaYaw
+        previousCameraYaw = currentCameraYaw
+        accumulatedYawQuaternion.setFromEuler(new THREE.Euler(0, accumulatedYaw, 0, 'YXZ'))
+        rigidBodyRef.current.setRotation(accumulatedYawQuaternion)
+    }
 
     useFrame((state, delta) => {
         const { forward, backward, leftward, rightward, jump, slide } = getKeys()
@@ -40,99 +107,24 @@ export default function FPSControls() {
         }
 
         if (rigidBodyRef.current) {
-            /**
-             * Camera
-             */
-            let previousCameraYaw = 0
-            let accumulatedYaw = 0
-            const pos = rigidBodyRef.current.translation()
-            camera.position.copy(pos).add(canSlide ? standingEye : crouchingEye) /* Sliding crouching animation */
-            const cameraEuler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ')
-            const currentCameraYaw = cameraEuler.y
-            let deltaYaw = currentCameraYaw - previousCameraYaw
-            if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI
-            if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI
-            accumulatedYaw += deltaYaw
-            previousCameraYaw = currentCameraYaw
-            const accumulatedYawQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, accumulatedYaw, 0, 'YXZ'))
-            rigidBodyRef.current.setRotation(accumulatedYawQuaternion)
+            handleCameraRotation()
+            handleMovement(forward, backward, leftward, rightward)
 
-            /**
-             * Movement
-             */
-            forwardDirectionVector.set(0, 0, -forward + backward)
-            sidewaysDirectionVector.set(rightward - leftward, 0, 0)
-
-            velocity
-                .copy(forwardDirectionVector)
-                .add(sidewaysDirectionVector)
-                .normalize()
-                .multiplyScalar(SPEED)
-                .applyQuaternion(camera.quaternion)
-
-            rigidBodyRef.current.setLinvel({
-                x: velocity.x,
-                y: rigidBodyRef.current.linvel().y,
-                z: velocity.z,
-            })
-
-            /**
-             * Jump
-             */
             const origin = rigidBodyRef.current.translation()
             origin.y -= 0.6
-            const direction = { x: 0, y: -1, z: 0 }
             const ray = new rapier.Ray(origin, direction)
             const hit = world.castRay(ray, 10, true)
 
             if (hit) {
-                if (jump && isGrounded && hit.toi < 0.15) {
-                    rigidBodyRef.current.setLinvel({ x: 0, y: JUMPHEIGHT, z: 0 })
-                    setIsGrounded(false)
-                } else if (hit.toi === 0) {
-                    setIsGrounded(true)
-                }
+                setIsGrounded(hit.toi < 0.15)
+                handleJump(jump, hit)
+                handleSlide(forward, backward, leftward, rightward, slide)
 
-                /* Wall Friction */
                 if (!isGrounded && hit.toi > 0.15) {
                     if (forward || backward || leftward || rightward) {
                         rigidBodyRef.current.friction = 1
                     }
                 }
-            }
-
-            /**
-             * Slide
-             */
-            if (slide && isGrounded && canSlide) {
-                const slideDir = new THREE.Vector3()
-                if (forward) {
-                    slideDir.set(0, 0, -1)
-                } else if (backward) {
-                    slideDir.set(0, 0, 1)
-                } else if (leftward) {
-                    slideDir.set(-1, 0, 0)
-                } else if (rightward) {
-                    slideDir.set(1, 0, 0)
-                } else {
-                    slideDir.set(0, 0, -1) // Default slide forward
-                }
-
-                slideDir.applyQuaternion(camera.quaternion)
-                slideDir.normalize().multiplyScalar(SLIDE_SPEED)
-                setSlideDirection(slideDir)
-                setCanSlide(false)
-            }
-
-            /**
-             * Applying sliding velocity
-             */
-            if (!canSlide) {
-                rigidBodyRef.current.setLinvel({
-                    x: slideDirection.x,
-                    y: rigidBodyRef.current.linvel().y,
-                    z: slideDirection.z,
-                })
             }
         }
     })
