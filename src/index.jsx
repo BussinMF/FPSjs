@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { Canvas } from '@react-three/fiber'
 import { KeyboardControls, Preload } from '@react-three/drei'
 import Experience from './Experience.jsx'
-import Interface from './Interface.jsx'
+import Interface from './Components/Interface.jsx'
 import { Perf } from 'r3f-perf'
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))

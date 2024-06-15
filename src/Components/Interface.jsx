@@ -7,6 +7,7 @@ export default function Interface() {
           <p>Space - Jump ( Hold to BunnyHop )</p>
           <p>Shift - Slide</p>
           <p>Q or A - Dash</p>
+          <p>LeftClick - Shoot</p>
         </div>
       </div>
     </>

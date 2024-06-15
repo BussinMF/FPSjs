@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { useKeyboardControls } from "@react-three/drei"
 import { CapsuleCollider, RigidBody, useRapier } from "@react-three/rapier"
-import Gun from "./Gun"
+import Gun from "./Gun.jsx"
 
 const SPEED = 10
 const JUMPHEIGHT = 7

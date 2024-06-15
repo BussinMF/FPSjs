@@ -1,8 +1,8 @@
-import { OrbitControls, PointerLockControls } from '@react-three/drei'
+import { PointerLockControls } from '@react-three/drei'
 import { Physics } from '@react-three/rapier'
-import Lights from './Lights.jsx'
-import World from './World.jsx'
-import FPScontrols from './FPScontrols.jsx'
+import Lights from './Components/Lights.jsx'
+import World from './Components/Prefabs/World.jsx'
+import FPScontrols from './Components/FPScontrols.jsx'
 
 export default function Experience()
 {
