@@ -13,12 +13,11 @@ export default function Gun() {
   const recoilRef = useRef(0)
   const recoilTargetRef = useRef(0)
 
-  // Hook for handling mouse events
   useMouseEvents(
     // Left mouse down
     () => {
       setPressedClicks((current) => ({ ...current, left: true }))
-      setRecoil(-0.1) // Apply recoil when left click
+      setRecoil(-0.1)
       recoilRef.current = 1
       recoilTargetRef.current = 0
     },
@@ -29,12 +28,10 @@ export default function Gun() {
     // Right mouse down
     () => {
       setPressedClicks((current) => ({ ...current, right: true }))
-      // Additional logic for right mouse down
     },
     // Right mouse up
     () => {
       setPressedClicks((current) => ({ ...current, right: false }))
-      // Additional logic for right mouse up
     }
   )
 

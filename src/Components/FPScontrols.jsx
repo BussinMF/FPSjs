@@ -9,7 +9,7 @@ const SPEED = 10
 const JUMPHEIGHT = 7
 const SLIDE_SPEED = 15
 const DASH_SPEED = 30
-const DASH_DURATION = 0.2 // Dash duration in seconds
+const DASH_DURATION = 0.2
 const standingEye = new THREE.Vector3(0, 0.5, 0)
 const crouchingEye = new THREE.Vector3(0, 0.2, 0)
 

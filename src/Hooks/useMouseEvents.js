@@ -1,4 +1,3 @@
-// useMouseEvents.js
 import { useEffect } from 'react';
 
 const useMouseEvents = (onLeftMouseDown, onLeftMouseUp, onRightMouseDown, onRightMouseUp) => {
