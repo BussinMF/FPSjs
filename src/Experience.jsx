@@ -2,7 +2,7 @@ import { PointerLockControls } from '@react-three/drei'
 import { Physics } from '@react-three/rapier'
 import Lights from './Components/Lights.jsx'
 import World from './Components/Prefabs/World.jsx'
-import FPScontrols from './Components/FPScontrols.jsx'
+import Player from './Components/Player.jsx'
 
 export default function Experience()
 {
@@ -14,7 +14,7 @@ export default function Experience()
         <Lights />
 
         <Physics debug>
-            <FPScontrols />
+            <Player />
             <World />
         </Physics>
 

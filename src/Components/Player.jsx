@@ -22,7 +22,7 @@ const dashDirection = new THREE.Vector3()
 const cameraEuler = new THREE.Euler()
 const accumulatedYawQuaternion = new THREE.Quaternion()
 
-export default function FPSControls() {
+export default function Player() {
   const { camera } = useThree()
   const { rapier, world } = useRapier()
   const rigidBodyRef = useRef()
