@@ -4,23 +4,18 @@ import { useFrame, useThree } from "@react-three/fiber"
 import { useKeyboardControls } from "@react-three/drei"
 import { CapsuleCollider, RigidBody, useRapier } from "@react-three/rapier"
 import Gun from "./Gun.jsx"
+import { handleMovement } from "./Handlers/handleMovement"
+import { handleJump } from "./Handlers/handleJump"
+import { handleSlide } from "./Handlers/handleSlide"
+import { handleDash } from "./Handlers/handleDash"
+import { handleCamera } from "./Handlers/handleCamera"
 
 const SPEED = 10
 const JUMPHEIGHT = 7
 const SLIDE_SPEED = 15
 const DASH_SPEED = 30
 const DASH_DURATION = 0.2
-const standingEye = new THREE.Vector3(0, 0.5, 0)
-const crouchingEye = new THREE.Vector3(0, 0.2, 0)
-
-const velocity = new THREE.Vector3()
-const forwardDirectionVector = new THREE.Vector3()
-const sidewaysDirectionVector = new THREE.Vector3()
 const direction = new THREE.Vector3(0, -1, 0)
-const slideDirection = new THREE.Vector3()
-const dashDirection = new THREE.Vector3()
-const cameraEuler = new THREE.Euler()
-const accumulatedYawQuaternion = new THREE.Quaternion()
 
 export default function Player() {
   const { camera } = useThree()
@@ -33,8 +28,6 @@ export default function Player() {
   const [canDash, setCanDash] = useState(true)
   const [subscribeKeys, getKeys] = useKeyboardControls()
   const [isDashPressed, setIsDashPressed] = useState(false)
-  let previousCameraYaw = 0
-  let accumulatedYaw = 0
   let dashTimeout = null
 
   useEffect(() => {
@@ -50,107 +43,6 @@ export default function Player() {
     return () => unsubscribe()
   }, [subscribeKeys])
 
-  const handleMovement = (forward, backward, leftward, rightward) => {
-    forwardDirectionVector.set(0, 0, -forward + backward)
-    sidewaysDirectionVector.set(rightward - leftward, 0, 0)
-
-    const bodyRot = rigidBodyRef.current.rotation()
-
-    velocity
-      .copy(forwardDirectionVector)
-      .add(sidewaysDirectionVector)
-      .normalize()
-      .multiplyScalar(SPEED)
-      .applyQuaternion(bodyRot)
-
-    rigidBodyRef.current.setLinvel({
-      x: velocity.x,
-      y: rigidBodyRef.current.linvel().y,
-      z: velocity.z,
-    })
-  }
-
-  const handleJump = (jump, hit) => {
-    if (jump && (isGrounded || isWalled) && hit.toi < 0.15) {
-      rigidBodyRef.current.setLinvel({ x: 0, y: JUMPHEIGHT, z: 0 })
-      setIsGrounded(false)
-      setIsWalled(false)
-    } else if (!isGrounded && isWalled && hit.toi > 0.15) {
-      setIsWalled(true)
-    } else if (hit.toi === 0) {
-      setIsGrounded(true)
-    }
-  }
-
-  const handleSlide = (forward, backward, leftward, rightward, slide) => {
-    if (slide && isGrounded && canSlide) {
-      slideDirection.set(
-        forward ? 0 : backward ? 0 : leftward ? -1 : rightward ? 1 : 0,
-        0,
-        forward ? -1 : backward ? 1 : leftward ? 0 : rightward ? 0 : -1
-      )
-      slideDirection.applyQuaternion(camera.quaternion)
-      slideDirection.normalize().multiplyScalar(SLIDE_SPEED)
-      setCanSlide(false)
-    }
-
-    if (!canSlide) {
-      rigidBodyRef.current.setLinvel({
-        x: slideDirection.x,
-        y: rigidBodyRef.current.linvel().y,
-        z: slideDirection.z,
-      })
-    }
-  }
-
-  const handleDash = (forward, backward, leftward, rightward, dash) => {
-    if (dash && canDash && !isDashPressed) {
-      setIsDashPressed(true)
-
-      dashDirection.set(
-        forward ? 0 : backward ? 0 : leftward ? -1 : rightward ? 1 : 0,
-        0,
-        forward ? -1 : backward ? 1 : leftward ? 0 : rightward ? 0 : -1
-      )
-      dashDirection.applyQuaternion(camera.quaternion)
-      dashDirection.normalize().multiplyScalar(DASH_SPEED)
-      setCanDash(false)
-
-      // Start a timer for the dash duration
-      dashTimeout = setTimeout(() => {
-        setCanDash(true)
-      }, DASH_DURATION * 1000)
-    }
-
-    if (!dash && isDashPressed) {
-      setIsDashPressed(false)
-    }
-
-    if (!canDash) {
-      rigidBodyRef.current.setLinvel({
-        x: dashDirection.x,
-        y: rigidBodyRef.current.linvel().y,
-        z: dashDirection.z,
-      })
-    }
-  }
-
-  const handleCamera = () => {
-    const pos = rigidBodyRef.current.translation()
-    camera.position.copy(pos).add(canSlide ? standingEye : crouchingEye)
-    cameraEuler.setFromQuaternion(camera.quaternion, "YXZ")
-    const currentCameraYaw = cameraEuler.y
-    let deltaYaw = currentCameraYaw - previousCameraYaw
-    if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI
-    if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI
-    accumulatedYaw += deltaYaw
-    previousCameraYaw = currentCameraYaw
-    accumulatedYawQuaternion.setFromEuler(
-      new THREE.Euler(0, accumulatedYaw, 0, "YXZ")
-    )
-    rigidBodyRef.current.setRotation(accumulatedYawQuaternion)
-  }
-
   useFrame((state, delta) => {
     const { forward, backward, leftward, rightward, jump, slide, dash } = getKeys()
 
@@ -159,8 +51,8 @@ export default function Player() {
     }
 
     if (rigidBodyRef.current) {
-      handleCamera()
-      handleMovement(forward, backward, leftward, rightward)
+      handleCamera(rigidBodyRef, camera, canSlide)
+      handleMovement(rigidBodyRef, SPEED, forward, backward, leftward, rightward)
 
       const origin = rigidBodyRef.current.translation()
       origin.y -= 0.6
@@ -169,12 +61,10 @@ export default function Player() {
 
       if (hit) {
         setIsGrounded(hit.toi < 0.15)
-        setIsWalled(
-          !isGrounded && hit.toi > 0.15 && (forward || backward || leftward || rightward)
-        )
-        handleJump(jump, hit)
-        handleSlide(forward, backward, leftward, rightward, slide)
-        handleDash(forward, backward, leftward, rightward, dash)
+        setIsWalled(!isGrounded && hit.toi > 0.15 && (forward || backward || leftward || rightward))
+        handleJump(rigidBodyRef, JUMPHEIGHT, isGrounded, isWalled, setIsGrounded, setIsWalled, jump, hit)
+        handleSlide(rigidBodyRef, SLIDE_SPEED, isGrounded, canSlide, setCanSlide, camera, forward, backward, leftward, rightward, slide)
+        handleDash(rigidBodyRef, DASH_SPEED, DASH_DURATION, canDash, setCanDash, isDashPressed, setIsDashPressed, camera, forward, backward, leftward, rightward, dash, dashTimeout)
 
         if (isWalled && !isGrounded) {
           rigidBodyRef.current.friction = 1
