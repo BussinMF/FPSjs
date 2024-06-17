@@ -54,12 +54,14 @@ export default function FPSControls() {
     forwardDirectionVector.set(0, 0, -forward + backward)
     sidewaysDirectionVector.set(rightward - leftward, 0, 0)
 
+    const bodyRot = rigidBodyRef.current.rotation()
+
     velocity
       .copy(forwardDirectionVector)
       .add(sidewaysDirectionVector)
       .normalize()
       .multiplyScalar(SPEED)
-      .applyQuaternion(camera.quaternion)
+      .applyQuaternion(bodyRot)
 
     rigidBodyRef.current.setLinvel({
       x: velocity.x,
