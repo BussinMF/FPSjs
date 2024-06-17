@@ -30,6 +30,7 @@ root.render(
         >
             <Perf position="top-left" minimal/>
             <Experience />
+            <Preload all />
         </Canvas>
         <Interface />
     </KeyboardControls>
